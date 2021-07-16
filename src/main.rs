@@ -11,7 +11,7 @@ struct Animal {
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {
-    let ip = "127.0.0.1".to_string();
+    let ip = "0.0.0.0".to_string();
     let port = std::env::var_os("PORT").unwrap_or("8080".into());
     let port = port.to_str().expect("error with ENV VAR: PORT");
 
