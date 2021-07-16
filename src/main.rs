@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use tide::prelude::*;
 use tide::Request;
 
@@ -9,11 +11,15 @@ struct Animal {
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {
+    let ip = "127.0.0.1".to_string();
+    let port = std::env::var_os("PORT").unwrap_or("8080".into());
+    let port = port.to_str().expect("error with ENV VAR: PORT");
+
     let mut app = tide::new();
     app.at("/orders/shoes").post(order_shoes);
     app.at("/test").get(test);
     app.at("/").get(hello);
-    app.listen("127.0.0.1:8080").await?;
+    app.listen(ip + ":" + &port).await?;
     Ok(())
 }
 
