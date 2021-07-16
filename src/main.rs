@@ -19,7 +19,11 @@ async fn main() -> tide::Result<()> {
     app.at("/orders/shoes").post(order_shoes);
     app.at("/test").get(test);
     app.at("/").get(hello);
+
+    println!("listening on port: {}", &port);
+
     app.listen(ip + ":" + &port).await?;
+
     Ok(())
 }
 
