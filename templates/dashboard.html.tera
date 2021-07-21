@@ -20,7 +20,7 @@
     <div class="accordion-item">
         <h2 class="accordion-header" id="tweet-{{loop.index}}">
             <button class="accordion-button" type="button" data-mdb-toggle="collapse"
-                data-mdb-target="#collapse-{{loop.index}}" aria-expanded="{{loop.first}}" aria-controls="collapseOne">
+                data-mdb-target="#collapse-{{loop.index}}" aria-expanded="true" aria-controls="collapseOne">
                 Tweet by: {{tweet.username}}
             </button>
         </h2>

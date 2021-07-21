@@ -157,7 +157,7 @@ async fn dashboard(_user: User) -> (ContentType, String) {
 //===========================================================================//
 
 #[post("/signup", data = "<form>")]
-async fn post_signup(form: Form<SignupForm>) -> String {
+async fn post_signup(form: Form<SignupForm>) -> Redirect {
     let mut rng = thread_rng();
     let salt: String = (0..8).map(|_| rng.sample(Alphanumeric) as char).collect();
     let pwdhash = argon2::hash_encoded(
@@ -168,7 +168,7 @@ async fn post_signup(form: Form<SignupForm>) -> String {
     .unwrap();
     db::store_user(&form.username, &pwdhash).unwrap();
 
-    format!("{} registered!", form.username)
+    Redirect::to("/")
 }
 
 #[post("/login", data = "<form>")]

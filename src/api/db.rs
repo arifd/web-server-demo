@@ -106,7 +106,7 @@ fn users_db_connection() -> Result<Connection> {
         "CREATE TABLE IF NOT EXISTS users (
                         id         INTEGER PRIMARY KEY NOT NULL,
                         username        TEXT,
-                        pwdhash         TEXT,
+                        pwdhash         TEXT
                     )",
         rusqlite::params![],
     )?;
