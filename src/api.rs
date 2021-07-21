@@ -56,7 +56,7 @@ pub struct LoginForm {
 }
 
 static TEMPLATES: Lazy<Tera> =
-    Lazy::new(|| Tera::new(path!("templates/**/*")).expect("Error with templates"));
+    Lazy::new(|| Tera::new("templates/**/*").expect("Error with templates"));
 
 //===========================================================================//
 // LAUNCH                                                                    //
