@@ -1,1 +1,1 @@
-web: ./target/release/Cwitter
+web: ./target/release/cwitter

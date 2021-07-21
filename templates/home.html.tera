@@ -1,0 +1,95 @@
+{% extends "base.html.tera" %}
+{% block title %}Welcome to Cwitter!{% endblock title %}
+{% block content %}
+<header>
+    <!-- Background image -->
+    <div id="intro" class="bg-image vh-100 shadow-1-strong">
+        <div class="mask" style="background: linear-gradient(-45deg, #23a6d5, #23d5ab);">
+            <div class=" container d-flex align-items-center justify-content-center text-center h-100">
+                <div class="text-white">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-md">
+                                <img src="assets/logo.png" alt="" width="100%" height="100%">
+                            </div>
+
+                            <div class="col">
+                                <div class="row gap-2">
+                                    <h1 class="display-1">Welcome to Cwitter</h1>
+                                    <h4>Careful what you say now.</h4>
+                                    <button type="button" class="btn btn-primary btn-lg" data-mdb-toggle="modal"
+                                        data-mdb-target="#sign-up">Sign up</button>
+                                    <button data-mdb-toggle="modal" data-mdb-target="#log-in"
+                                        class="btn btn-secondary btn-lg">Log in</button>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Background image -->
+</header>
+
+<!-- Sign up Modal -->
+<div class="modal fade" id="sign-up" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Create your acount</h5>
+                <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="signup" method="post" autocomplete="off">
+                <div class="modal-body">
+                    <div class="form-floating mb-2">
+                        <input type="text" class="form-control" id="user" name="username" placeholder="User">
+                        <label for="user">Create Username</label>
+                    </div>
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="password" name="password"
+                            placeholder="Password">
+                        <label for="password">Choose a password</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" value="Submit">Create account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Log in Modal -->
+<div class="modal fade" id="log-in" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Welcome back</h5>
+                <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="login" method="POST" autocomplete="off">
+                <div class="modal-body">
+                    <div class="form-floating mb-2">
+                        <input type="text" class="form-control" id="user" name="username" placeholder="User">
+                        <label for="user">Username</label>
+                    </div>
+                    <div class="form-floating mb-2">
+                        <input type="password" class="form-control" id="password" name="password"
+                            placeholder="Password">
+                        <label for="password">Password</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" value="Submit">Log in</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,36 @@
+{% extends "base.html.tera" %}
+{% block title %}Cwitter Universe{% endblock title %}
+{% block content %}
+<!-- Post bar -->
+<nav class="navbar navbar-light bg-light">
+    <div class="container-fluid">
+
+        <a class="navbar-brand"><img src="assets/logo.png" width=32 height=32 />Cwitter</a>
+        <form class="d-flex" action="post" method="POST">
+            <input class="form-control me-2" size="34" type="text" name="body" placeholder="Post a tweet..."
+                aria-label="Tweet">
+            <button class="btn btn-outline-success" type="submit">Post</button>
+        </form>
+    </div>
+</nav>
+
+<!-- Tweet list -->
+<div class="accordion" id="tweets-list">
+    {% for tweet in tweets %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="tweet-{{loop.index}}">
+            <button class="accordion-button" type="button" data-mdb-toggle="collapse"
+                data-mdb-target="#collapse-{{loop.index}}" aria-expanded="{{loop.first}}" aria-controls="collapseOne">
+                Tweet by: {{tweet.username}}
+            </button>
+        </h2>
+        <div id="collapse-{{loop.index}}" class="accordion-collapse collapse show"
+            aria-labelledby="tweet-{{loop.index}}" data-mdb-parent="#tweets-list">
+            <div class="accordion-body">
+                <strong>{{tweet.body}}</strong>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock content %}
