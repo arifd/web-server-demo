@@ -15,11 +15,11 @@
     <title>{% block title %}Cwitter!{% endblock title %}</title>
 </head>
 
-{% block content %}{% endblock content %}
+<body>
+    {% block content %}{% endblock content %}
 
-<!-- MDB -->
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.6.0/mdb.min.js"></script>
-
+    <!-- MDB -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.6.0/mdb.min.js"></script>
 </body>
 
 </html>
