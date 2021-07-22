@@ -2,8 +2,6 @@ mod auth;
 mod db;
 
 use once_cell::sync::Lazy;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use rocket::{
     form::{Form, FromForm},
     fs::FileServer,
@@ -33,12 +31,14 @@ use tera::Tera;
 // NOTE: The architecture of the interaction between client and server is    //
 // Still not ideal. I'm not sure I want redirects, and I think i might prefer//
 // to do the form submission manually client-side using JS. have this server //
-// always return JSON as a principle                                         //
+// always return JSON as a principle.                                        //
 // (apart from when it delivers the initial web app)                         //
 //===========================================================================//
 
 //===========================================================================//
-// TODO: users need to be identified by id, not by username!                 //
+// NOTE: Users want to be identified by id, not by username!                 //
+// Which are cross referenced with theusers DB (along with JWT verification).//
+// If JWT fails OR db is deleted, user permissions fail.                     //
 //===========================================================================//
 
 //===========================================================================//
@@ -81,6 +81,7 @@ static TEMPLATES: Lazy<Tera> =
 //===========================================================================//
 // LAUNCH                                                                    //
 //===========================================================================//
+
 // #[launch]
 pub fn rocket() -> Rocket<Build> {
     let address: IpAddr = "0.0.0.0".parse().unwrap();
@@ -119,6 +120,7 @@ pub fn rocket() -> Rocket<Build> {
 //===========================================================================//
 // HOME                                                                      //
 //===========================================================================//
+
 // TODO: precompile any static HTML in the build.rs
 
 /// Root path without authentication will deliver the web app
@@ -155,7 +157,7 @@ impl<'r> FromRequest<'r> for User {
 
     async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         if let Some(cookie) = req.cookies().get("Authorization") {
-            if let Ok(claims) = auth::verify_decode_jwt(cookie.value()) {
+            if let Ok(claims) = auth::verify_decode_login_token(cookie.value()) {
                 return request::Outcome::Success(User {
                     username: claims.sub,
                 });
@@ -173,11 +175,10 @@ impl<'r> FromRequest<'r> for User {
 //===========================================================================//
 // ACCOUNT                                                                   //
 //===========================================================================//
+
 #[post("/signup", data = "<form>")]
 async fn post_signup(form: Form<SignupForm>) -> Redirect {
-    let salt: [u8; 16] = thread_rng().gen();
-    let pwdhash =
-        argon2::hash_encoded(form.password.as_bytes(), &salt, &argon2::Config::default()).unwrap();
+    let pwdhash = auth::hash_password(&form.password);
     db::store_user(&form.username, &pwdhash).unwrap();
 
     Redirect::to("/")
@@ -187,8 +188,8 @@ async fn post_signup(form: Form<SignupForm>) -> Redirect {
 async fn post_login(form: Form<LoginForm>, cookies: &CookieJar<'_>) -> Redirect {
     // Check user and password match what is in the DB
     if let Ok(pwdhash) = db::get_password_hash(&form.username) {
-        if let Ok(true) = argon2::verify_encoded(&pwdhash, form.password.as_bytes()) {
-            let token = auth::generate_jwt(&form.username).unwrap();
+        if let Ok(true) = auth::verify_pwdhash(&pwdhash, &form.password) {
+            let token = auth::generate_login_token(&form.username).unwrap();
             cookies.add(Cookie::new("Authorization", token));
             return Redirect::to("/");
         }
@@ -205,6 +206,7 @@ async fn failure() -> String {
 //===========================================================================//
 // TWEET                                                                     //
 //===========================================================================//
+
 #[post("/post", data = "<form>")]
 async fn post(form: Form<PostTweetForm>, user: User) -> Redirect {
     let tweet = form.into_inner();

@@ -6,16 +6,36 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::time;
 
+//===========================================================================//
+// PASSWORD HASHING                                                          //
+//===========================================================================//
+
+/// Create a hashed and salted, encoded password for storing in a database
+pub fn hash_password(pwd: &str) -> String {
+    let salt: [u8; 16] = rand::random();
+    argon2::hash_encoded(pwd.as_bytes(), &salt, &argon2::Config::default()).unwrap()
+}
+
+/// Verify the hashed password
+pub fn verify_pwdhash(pwdhash: &str, pwd: &str) -> Result<bool> {
+    Ok(argon2::verify_encoded(&pwdhash, pwd.as_bytes())?)
+}
+
+//===========================================================================//
+// USER LOGIN                                                                //
+//===========================================================================//
+
 const JWT_SECRET: &[u8] = b"NEVER-STORE-SECRETS-IN-CODE";
 static ENCODING_KEY: Lazy<EncodingKey> = Lazy::new(|| EncodingKey::from_secret(JWT_SECRET));
 static DECODING_KEY: Lazy<DecodingKey> = Lazy::new(|| DecodingKey::from_secret(JWT_SECRET));
 
 // A custom payload, I can store arbitary information here
 // such as different roles/permissions for different users
+// to avoid doing a db lookup of such information
 #[derive(Serialize, Deserialize)]
-pub struct Claims {
+pub struct LoginClaims {
     // subject
-    pub sub: String,
+    pub sub: String, // todo: be the user_id in the DB
     // issued at
     pub iat: u64,
 }
@@ -25,12 +45,12 @@ pub struct Claims {
 /// Does no authorisation, just straight-up creation,
 /// that we can later verify was un-tampered; when the
 /// client gives us a JWT in his Authorization header
-pub fn generate_jwt(username: &str) -> Result<String> {
+pub fn generate_login_token(username: &str) -> Result<String> {
     let unix_time = time::SystemTime::now()
         .duration_since(time::SystemTime::UNIX_EPOCH)?
         .as_secs();
 
-    let claims = Claims {
+    let claims = LoginClaims {
         sub: String::from(username),
         iat: unix_time,
     };
@@ -45,9 +65,9 @@ pub fn generate_jwt(username: &str) -> Result<String> {
 ///
 /// If Ok(Claims), then you can trust the data, and/or perform additional conditional logic
 /// such as check for certain permissions/roles
-pub fn verify_decode_jwt(jwt: &str) -> Result<Claims> {
-    Ok(decode::<Claims>(
-        &jwt,
+pub fn verify_decode_login_token(token: &str) -> Result<LoginClaims> {
+    Ok(decode::<LoginClaims>(
+        &token,
         &DECODING_KEY,
         &Validation {
             validate_exp: false,
