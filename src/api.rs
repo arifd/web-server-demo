@@ -175,14 +175,9 @@ impl<'r> FromRequest<'r> for User {
 //===========================================================================//
 #[post("/signup", data = "<form>")]
 async fn post_signup(form: Form<SignupForm>) -> Redirect {
-    let mut rng = thread_rng();
-    let salt: String = (0..8).map(|_| rng.sample(Alphanumeric) as char).collect();
-    let pwdhash = argon2::hash_encoded(
-        form.password.as_bytes(),
-        salt.as_bytes(),
-        &argon2::Config::default(),
-    )
-    .unwrap();
+    let salt: [u8; 16] = thread_rng().gen();
+    let pwdhash =
+        argon2::hash_encoded(form.password.as_bytes(), &salt, &argon2::Config::default()).unwrap();
     db::store_user(&form.username, &pwdhash).unwrap();
 
     Redirect::to("/")
