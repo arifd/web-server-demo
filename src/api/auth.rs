@@ -38,6 +38,8 @@ pub struct LoginClaims {
     pub sub: String, // todo: be the user_id in the DB
     // issued at
     pub iat: u64,
+    // expiration
+    pub exp: u64,
 }
 
 /// Return a JWT (which is JSON)
@@ -46,13 +48,16 @@ pub struct LoginClaims {
 /// that we can later verify was un-tampered; when the
 /// client gives us a JWT in his Authorization header
 pub fn generate_login_token(username: &str) -> Result<String> {
-    let unix_time = time::SystemTime::now()
-        .duration_since(time::SystemTime::UNIX_EPOCH)?
-        .as_secs();
+    let now = time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH)?;
+
+    let iat = now.as_secs();
+
+    let exp = iat + 86400; // 86400 secs = 24 hours.
 
     let claims = LoginClaims {
         sub: String::from(username),
-        iat: unix_time,
+        iat,
+        exp,
     };
 
     Ok(encode(&Header::default(), &claims, &ENCODING_KEY)?)
@@ -66,13 +71,5 @@ pub fn generate_login_token(username: &str) -> Result<String> {
 /// If Ok(Claims), then you can trust the data, and/or perform additional conditional logic
 /// such as check for certain permissions/roles
 pub fn verify_decode_login_token(token: &str) -> Result<LoginClaims> {
-    Ok(decode::<LoginClaims>(
-        &token,
-        &DECODING_KEY,
-        &Validation {
-            validate_exp: false,
-            ..Default::default()
-        },
-    )?
-    .claims)
+    Ok(decode::<LoginClaims>(&token, &DECODING_KEY, &Validation::default())?.claims)
 }

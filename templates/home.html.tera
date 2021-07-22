@@ -43,7 +43,7 @@
                 <h5 class="modal-title" id="exampleModalLabel">Create your acount</h5>
                 <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="signup" method="post" autocomplete="off">
+            <form id="signup" action="signup" method="post" autocomplete="off">
                 <div class="modal-body">
                     <div class="form-floating mb-2">
                         <input type="text" class="form-control" id="user" name="username" placeholder="User">
@@ -72,7 +72,7 @@
                 <h5 class="modal-title" id="exampleModalLabel">Welcome back</h5>
                 <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="login" method="POST" autocomplete="off">
+            <form id="login" action="login" method="POST" autocomplete="off">
                 <div class="modal-body">
                     <div class="form-floating mb-2">
                         <input type="text" class="form-control" id="user" name="username" placeholder="User">
@@ -93,3 +93,26 @@
     </div>
 </div>
 {% endblock content %}
+
+{% block scripts %}
+<script>
+    [...document.querySelectorAll('form')].forEach(form => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            fetch(form.getAttribute('action'), {
+                method: form.getAttribute('method'),
+                body: new URLSearchParams(new FormData(form)),
+            })
+                .then(res => res.json())
+                .then(json => {
+                    if (json.error) {
+                        form.children[0].insertAdjacentHTML('afterbegin', `<div id="signup-alert" class="alert alert-danger alert-dismissible fade show" role="alert">${json.error}<button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button></div>`);
+                    } else {
+                        document.cookie = `Authorization=${json.jwt}`;
+                        location.reload();
+                    }
+                })
+        });
+    })
+</script>
+{% endblock scripts %}

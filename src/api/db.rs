@@ -17,6 +17,15 @@ pub fn store_user(username: &str, pwdhash: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn user_exists(username: &str) -> bool {
+    if let Ok(_) = get_password_hash(username) {
+        true
+    } else {
+        false
+    }
+}
+
+/// Somewhat annoyingly, rusqlite treats entry not found as an Error
 pub fn get_password_hash(username: &str) -> Result<String> {
     let conn = users_db_connection()?;
     Ok(conn.query_row(

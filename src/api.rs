@@ -1,25 +1,30 @@
 mod auth;
 mod db;
+#[cfg(test)]
+mod tests;
 
 use once_cell::sync::Lazy;
 use rocket::{
     form::{Form, FromForm},
     fs::FileServer,
     get,
-    http::{ContentType, Cookie, CookieJar},
+    http::{ContentType, Cookie, CookieJar, Status},
     post, request,
     request::FromRequest,
-    response::Redirect,
+    response::{content::Json, Redirect, Responder},
     routes,
     serde::Serialize,
     Build, Request, Rocket,
 };
+use serde_json::{json, Value};
 use std::fmt::Debug;
 use std::net::IpAddr;
 use tera::Tera;
 
 //===========================================================================//
-// TODO: HTTPS !!                                                            //
+// TODO: HTTPS!!                                                             //
+// EITHER TLS: https://rocket.rs/v0.5-rc/guide/configuration/#tls            //
+// AND/OR REDIRECT HTTP TO HTTPS                                             //
 //===========================================================================//
 
 //===========================================================================//
@@ -44,13 +49,6 @@ use tera::Tera;
 //===========================================================================//
 // TODO: Reconsider database choice                                          //
 //===========================================================================//
-
-#[macro_export]
-macro_rules! path {
-    ($path: literal) => {
-        concat!(env!("CARGO_MANIFEST_DIR"), "/", $path,)
-    };
-}
 
 #[derive(FromForm)]
 pub struct PostTweetForm {
@@ -109,7 +107,7 @@ pub fn rocket() -> Rocket<Build> {
                 post_signup,
                 post_login,
                 post,
-                tweets,
+                // tweets,
                 failure,
                 delete,
             ],
@@ -157,12 +155,13 @@ impl<'r> FromRequest<'r> for User {
 
     async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         if let Some(cookie) = req.cookies().get("Authorization") {
-            if let Ok(claims) = auth::verify_decode_login_token(cookie.value()) {
-                return request::Outcome::Success(User {
-                    username: claims.sub,
-                });
-            } else {
-                println!("Auth token invalid");
+            match auth::verify_decode_login_token(cookie.value()) {
+                Ok(claims) => {
+                    return request::Outcome::Success(User {
+                        username: claims.sub,
+                    });
+                }
+                Err(err) => println!("Auth token invalid: {}", err),
             }
         } else {
             println!("No auth token present");
@@ -177,25 +176,40 @@ impl<'r> FromRequest<'r> for User {
 //===========================================================================//
 
 #[post("/signup", data = "<form>")]
-async fn post_signup(form: Form<SignupForm>) -> Redirect {
+async fn post_signup(form: Form<SignupForm>) -> (Status, Value) {
+    // Check username doesn't already exist
+    if db::user_exists(&form.username) {
+        return (
+            Status::BadRequest,
+            json!({"error": "This username is already taken. Please choose another"}),
+        );
+    }
+
     let pwdhash = auth::hash_password(&form.password);
     db::store_user(&form.username, &pwdhash).unwrap();
 
-    Redirect::to("/")
+    let token = auth::generate_login_token(&form.username).unwrap();
+    // cookies.add(Cookie::new("Authorization", token));
+    (Status::Accepted, json!({ "jwt": token }))
+    // (Status::Accepted, Value::Null)
 }
 
 #[post("/login", data = "<form>")]
-async fn post_login(form: Form<LoginForm>, cookies: &CookieJar<'_>) -> Redirect {
+async fn post_login(form: Form<LoginForm>, _cookies: &CookieJar<'_>) -> (Status, Value) {
     // Check user and password match what is in the DB
     if let Ok(pwdhash) = db::get_password_hash(&form.username) {
         if let Ok(true) = auth::verify_pwdhash(&pwdhash, &form.password) {
             let token = auth::generate_login_token(&form.username).unwrap();
-            cookies.add(Cookie::new("Authorization", token));
-            return Redirect::to("/");
+            // cookies.add(Cookie::new("Authorization", token));
+            return (Status::Accepted, json!({ "jwt": token }));
+            // return (Status::Accepted, Value::Null);
         }
     }
 
-    Redirect::to("/failure")
+    (
+        Status::Forbidden,
+        json!({"error": "The username and password you entered did not match our records. Please double-check and try again."}),
+    )
 }
 
 #[get("/failure")]
@@ -221,12 +235,12 @@ async fn post(form: Form<PostTweetForm>, user: User) -> Redirect {
 }
 
 /// Return all stored tweets as JSON
-#[get("/tweets")]
-async fn tweets() -> (ContentType, String) {
-    let tweets = db::get_tweets().unwrap();
-    let json = serde_json::to_string(&tweets).unwrap();
-    (ContentType::JSON, json)
-}
+// #[get("/tweets")]
+// async fn tweets() -> JsonResponse {
+//     let tweets = db::get_tweets().unwrap();
+//     let json = serde_json::to_string(&tweets).unwrap();
+
+// }
 
 //===========================================================================//
 // MISC                                                                      //
