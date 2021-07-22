@@ -1,28 +1,48 @@
-// TEMPORARY
-#[allow(dead_code, unused_variables, unused_imports)]
-// END-TEMPORARY
 mod auth;
 mod db;
 
-use argon2;
 use once_cell::sync::Lazy;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use rocket::form::Form;
-use rocket::fs::FileServer;
-use rocket::http::{ContentType, Cookie, CookieJar, Header};
-use rocket::request::{FromRequest, Outcome};
-use rocket::response::Redirect;
-use rocket::serde::Serialize;
-use rocket::{Response, *};
+use rocket::{
+    form::{Form, FromForm},
+    fs::FileServer,
+    get,
+    http::{ContentType, Cookie, CookieJar},
+    post, request,
+    request::FromRequest,
+    response::Redirect,
+    routes,
+    serde::Serialize,
+    Build, Request, Rocket,
+};
 use std::fmt::Debug;
-use std::io::Cursor;
 use std::net::IpAddr;
 use tera::Tera;
 
 //===========================================================================//
-// NOTES: Unwraps are fine for now because Rocket manages panics and returns //
+// TODO: HTTPS !!                                                            //
+//===========================================================================//
+
+//===========================================================================//
+// NOTE: Unwraps are fine for now because Rocket manages panics and returns  //
 // appropriate errors to the client                                          //
+//===========================================================================//
+
+//===========================================================================//
+// NOTE: The architecture of the interaction between client and server is    //
+// Still not ideal. I'm not sure I want redirects, and I think i might prefer//
+// to do the form submission manually client-side using JS. have this server //
+// always return JSON as a principle                                         //
+// (apart from when it delivers the initial web app)                         //
+//===========================================================================//
+
+//===========================================================================//
+// TODO: users need to be identified by id, not by username!                 //
+//===========================================================================//
+
+//===========================================================================//
+// TODO: Reconsider database choice                                          //
 //===========================================================================//
 
 #[macro_export]
@@ -61,11 +81,10 @@ static TEMPLATES: Lazy<Tera> =
 //===========================================================================//
 // LAUNCH                                                                    //
 //===========================================================================//
-
 // #[launch]
 pub fn rocket() -> Rocket<Build> {
     let address: IpAddr = "0.0.0.0".parse().unwrap();
-    let port = std::env::var_os("PORT").unwrap_or("8080".into());
+    let port = std::env::var_os("PORT").unwrap_or_else(|| "8080".into());
     let port: u16 = port
         .to_str()
         .expect("Error in env var: PORT")
@@ -91,19 +110,18 @@ pub fn rocket() -> Rocket<Build> {
                 post,
                 tweets,
                 failure,
+                delete,
             ],
         )
-    // will be a /user path where all things need to be authenticated with the user API for things like posting tweet and getting tweets
+    // TODO: Consider /user path where all things need to be authenticated with the user API for things like posting tweet and getting tweets
 }
 
 //===========================================================================//
 // HOME                                                                      //
 //===========================================================================//
+// TODO: precompile any static HTML in the build.rs
 
-// TODO: use a build.rs script to precompile the home screen and the web client app,
-// so that we don't render and minify static data at run-time on each request
-
-/// root path without authentication will deliver the web app
+/// Root path without authentication will deliver the web app
 #[get("/", rank = 2)]
 async fn home() -> (ContentType, String) {
     (
@@ -111,6 +129,19 @@ async fn home() -> (ContentType, String) {
         TEMPLATES
             .render("home.html.tera", &tera::Context::new())
             .unwrap(),
+    )
+}
+
+/// Root path with authentication token will deliver your dashboard data
+#[get("/", rank = 1)]
+async fn dashboard(_user: User) -> (ContentType, String) {
+    let tweets = db::get_tweets().unwrap();
+    let mut ctx = tera::Context::new();
+    ctx.insert("tweets", &tweets);
+
+    (
+        ContentType::HTML,
+        TEMPLATES.render("dashboard.html.tera", &ctx).unwrap(),
     )
 }
 
@@ -139,23 +170,9 @@ impl<'r> FromRequest<'r> for User {
     }
 }
 
-/// root path with authentication token will deliver your dashboard data
-#[get("/", rank = 1)]
-async fn dashboard(_user: User) -> (ContentType, String) {
-    let tweets = db::get_tweets().unwrap();
-    let mut ctx = tera::Context::new();
-    ctx.insert("tweets", &tweets);
-
-    (
-        ContentType::HTML,
-        TEMPLATES.render("dashboard.html.tera", &ctx).unwrap(),
-    )
-}
-
 //===========================================================================//
 // ACCOUNT                                                                   //
 //===========================================================================//
-
 #[post("/signup", data = "<form>")]
 async fn post_signup(form: Form<SignupForm>) -> Redirect {
     let mut rng = thread_rng();
@@ -190,13 +207,6 @@ async fn failure() -> String {
     String::from("failure")
 }
 
-#[get("/test")]
-async fn test(cookies: &CookieJar<'_>) -> Option<String> {
-    cookies
-        .get("auth")
-        .map(|c| format!("cookie found: {}", c.value()))
-}
-
 //===========================================================================//
 // TWEET                                                                     //
 //===========================================================================//
@@ -219,4 +229,23 @@ async fn tweets() -> (ContentType, String) {
     let tweets = db::get_tweets().unwrap();
     let json = serde_json::to_string(&tweets).unwrap();
     (ContentType::JSON, json)
+}
+
+//===========================================================================//
+// MISC                                                                      //
+//===========================================================================//
+
+#[get("/delete")] // GET-ing for easy browser interface
+async fn delete() -> String {
+    match std::fs::remove_file("cwitter.db") {
+        Ok(()) => "success".to_string(),
+        Err(err) => format!("err: {:?}", err),
+    }
+}
+
+#[get("/test")]
+async fn test(cookies: &CookieJar<'_>) -> Option<String> {
+    cookies
+        .get("Authorization")
+        .map(|c| format!("cookie found: {}", c.value()))
 }

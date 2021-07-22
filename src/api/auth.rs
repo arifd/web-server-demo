@@ -1,7 +1,7 @@
 //! CURRENTLY, THE USERNAME IS THE ID, THIS WILL BE CHANGED WHEN I KNOW HOW TO DO RELATIONAL DB STUFF :)
 
 use anyhow::Result;
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::time;
