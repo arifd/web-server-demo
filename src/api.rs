@@ -1,5 +1,6 @@
 mod auth;
 mod db;
+
 #[cfg(test)]
 mod tests;
 
