@@ -51,6 +51,10 @@ use tera::Tera;
 // TODO: Reconsider database choice                                          //
 //===========================================================================//
 
+//===========================================================================//
+// TODO: Look into https://github.com/axios/axios as a browser HTTP client   //
+//===========================================================================//
+
 #[derive(FromForm)]
 pub struct PostTweetForm {
     body: String,
